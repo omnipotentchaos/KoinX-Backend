@@ -13,7 +13,6 @@ A production-grade, highly performant **Transaction Reconciliation Engine** buil
    - **Proximity Filtering**: Filters by configurable timestamp windows and evaluates percentage deviations in decimal quantities.
 3. **Immersive UI Dashboard**: Serve static HTML/CSS files natively through Express to provide a beautiful glassmorphism single-page app displaying real-time summaries, tolerance adjustment sliders, distribution visualizers, and detailed discrepancy reports.
 4. **Rich REST APIs & CSV Exports**: Supports JSON responses, paginated detailed reports, summary metrics, and direct CSV file downloads.
-5. **Robust Test Suite**: 100% test coverage of matching logic components using Jest.
 
 ---
 
@@ -52,9 +51,6 @@ KoinX/
 │   │
 │   ├── routes/
 │   │   └── api.js           # REST API endpoints mapping
-│   │
-│   ├── tests/
-│   │   └── reconcile.test.js # Automated unit tests for matching rules
 │   │
 │   └── app.js               # Express application initialization
 │
@@ -126,14 +122,6 @@ QUANTITY_TOLERANCE_PCT=0.01
 The server will boot up and listen on: **`http://localhost:3000`**
 
 ---
-
-## 🧪 Running Automated Tests
-
-To run the Jest unit tests that verify matching engine rules, simply execute:
-```bash
-npm test
-```
-*This runs the test suite sequentially to avoid database port and handle leaks.*
 
 ---
 
