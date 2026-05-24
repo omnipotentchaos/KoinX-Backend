@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KoinX - Transaction Reconciliation Engine</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-gradient: linear-gradient(135deg, #0f0c1b 0%, #1e1335 50%, #0b071e 100%);
+      --accent-primary: #8a2be2;
+      --accent-secondary: #4a00e0;
+      --accent-glow: rgba(138, 43, 226, 0.4);
+      --glass-bg: rgba(255, 255, 255, 0.03);
+      --glass-border: rgba(255, 255, 255, 0.06);
+      --glass-border-hover: rgba(255, 255, 255, 0.12);
+      
+      --color-matched: #10b981;
+      --color-conflicting: #f59e0b;
+      --color-unmatched-user: #3b82f6;
+      --color-unmatched-exchange: #ec4899;
+      --color-error: #ef4444;
+      --color-text-main: #f3f4f6;
+      --color-text-muted: #9ca3af;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Outfit', sans-serif;
+    }
+
+    body {
+      background: var(--bg-gradient);
+      color: var(--color-text-main);
+      min-height: 100vh;
+      overflow-x: hidden;
+      padding: 2.5rem 1.5rem;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 3.5rem;
+      position: relative;
+    }
+
+    header::after {
+      content: '';
+      position: absolute;
+      top: -100px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, var(--accent-glow) 0%, rgba(0,0,0,0) 70%);
+      z-index: -1;
+      filter: blur(50px);
+      pointer-events: none;
+    }
+
+    .logo-container {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.8rem;
+      margin-bottom: 0.8rem;
+    }
+
+    .logo-icon {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+      font-weight: 800;
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+
+    .logo-text {
+      font-size: 2.2rem;
+      font-weight: 800;
+      background: linear-gradient(to right, #ffffff, #a855f7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.5px;
+    }
+
+    .tagline {
+      color: var(--color-text-muted);
+      font-size: 1.1rem;
+      font-weight: 400;
+      max-width: 500px;
+      margin: 0 auto;
+      line-height: 1.5;
+    }
+
+    /* Glass Panels */
+    .glass-card {
+      background: var(--glass-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      padding: 2rem;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+      transition: all 0.3s ease;
+    }
+
+    .glass-card:hover {
+      border-color: var(--glass-border-hover);
+      box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.4);
+    }
+
+    /* Dashboard Layout */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 350px 1fr;
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    @media (max-width: 968px) {
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Form Styles */
+    .form-title {
+      font-size: 1.4rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--color-text-muted);
+      margin-bottom: 0.6rem;
+    }
+
+    .slider-container {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    input[type="range"] {
+      flex: 1;
+      accent-color: var(--accent-primary);
+      height: 6px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.1);
+      cursor: pointer;
+    }
+
+    .slider-val {
+      min-width: 70px;
+      text-align: right;
+      font-family: monospace;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--accent-primary);
+      background: rgba(138, 43, 226, 0.1);
+      padding: 0.2rem 0.5rem;
+      border-radius: 6px;
+    }
+
+    .btn {
+      width: 100%;
+      background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+      color: white;
+      border: none;
+      padding: 1rem;
+      border-radius: 12px;
+      font-size: 1.05rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(138, 43, 226, 0.3);
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(138, 43, 226, 0.5);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn:disabled {
+      background: rgba(255,255,255,0.05);
+      color: var(--color-text-muted);
+      box-shadow: none;
+      cursor: not-allowed;
+    }
+
+    /* Metric Cards */
+    .metrics-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1.2rem;
+      margin-bottom: 2rem;
+    }
+
+    .metric-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-radius: 16px;
+      padding: 1.2rem;
+      text-align: center;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .metric-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+    }
+
+    .metric-card.matched::before { background-color: var(--color-matched); }
+    .metric-card.conflicting::before { background-color: var(--color-conflicting); }
+    .metric-card.unmatched-user::before { background-color: var(--color-unmatched-user); }
+    .metric-card.unmatched-exchange::before { background-color: var(--color-unmatched-exchange); }
+    .metric-card.invalid-rows::before { background-color: var(--color-error); }
+
+    .metric-label {
+      font-size: 0.85rem;
+      color: var(--color-text-muted);
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .metric-val {
+      font-size: 2.2rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .metric-card.matched .metric-val { color: var(--color-matched); }
+    .metric-card.conflicting .metric-val { color: var(--color-conflicting); }
+    .metric-card.unmatched-user .metric-val { color: var(--color-unmatched-user); }
+    .metric-card.unmatched-exchange .metric-val { color: var(--color-unmatched-exchange); }
+    .metric-card.invalid-rows .metric-val { color: var(--color-error); }
+
+    /* Visual Distribution Bar */
+    .distribution-panel {
+      margin-bottom: 2rem;
+    }
+
+    .distribution-bar {
+      height: 16px;
+      border-radius: 8px;
+      display: flex;
+      overflow: hidden;
+      margin-bottom: 0.8rem;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .dist-segment {
+      height: 100%;
+      transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .dist-segment.matched { background-color: var(--color-matched); }
+    .dist-segment.conflicting { background-color: var(--color-conflicting); }
+    .dist-segment.unmatched-user { background-color: var(--color-unmatched-user); }
+    .dist-segment.unmatched-exchange { background-color: var(--color-unmatched-exchange); }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+      justify-content: center;
+      font-size: 0.85rem;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .legend-color {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+    }
+
+    /* Results Table */
+    .table-container {
+      overflow-x: auto;
+      margin-top: 1.5rem;
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.9rem;
+    }
+
+    th, td {
+      padding: 1rem 1.2rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    th {
+      background: rgba(255, 255, 255, 0.02);
+      color: var(--color-text-muted);
+      font-weight: 500;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.5px;
+    }
+
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.01);
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.6rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .badge.matched { background: rgba(16, 185, 129, 0.1); color: var(--color-matched); }
+    .badge.conflicting { background: rgba(245, 158, 11, 0.1); color: var(--color-conflicting); }
+    .badge.unmatched-user { background: rgba(59, 130, 246, 0.1); color: var(--color-unmatched-user); }
+    .badge.unmatched-exchange { background: rgba(236, 72, 153, 0.1); color: var(--color-unmatched-exchange); }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.3s ease;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .loader {
+      display: none;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .text-center {
+      text-align: center;
+    }
+
+    .empty-state {
+      padding: 4rem 2rem;
+      color: var(--color-text-muted);
+    }
+
+    .empty-state svg {
+      width: 64px;
+      height: 64px;
+      margin-bottom: 1rem;
+      opacity: 0.3;
+    }
+
+    .table-tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      padding-bottom: 0.5rem;
+    }
+
+    .table-tab {
+      background: none;
+      border: none;
+      color: var(--color-text-muted);
+      padding: 0.5rem 1rem;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      border-radius: 6px;
+      transition: all 0.3s ease;
+    }
+
+    .table-tab.active {
+      color: white;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .table-tab:hover:not(.active) {
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo-container">
+        <div class="logo-icon">K</div>
+        <div class="logo-text">KoinX</div>
+      </div>
+      <p class="tagline">Production-Grade Cryptocurrency Transaction Reconciliation Engine</p>
+    </header>
+
+    <div class="dashboard-grid">
+      <!-- Left Config Control Panel -->
+      <aside class="glass-card">
+        <div class="form-title">
+          <svg style="width: 24px; height: 24px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
+          </svg>
+          Matching Settings
+        </div>
+
+        <div class="form-group">
+          <label for="timeSlider">Timestamp Tolerance (Seconds)</label>
+          <div class="slider-container">
+            <input type="range" id="timeSlider" min="10" max="3600" step="10" value="300">
+            <span class="slider-val" id="timeVal">300s</span>
+          </div>
+          <p style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.4rem;">Pairs rows if times differ by less than this window.</p>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 2rem;">
+          <label for="qtySlider">Quantity Tolerance (%)</label>
+          <div class="slider-container">
+            <input type="range" id="qtySlider" min="0.0001" max="1" step="0.005" value="0.01">
+            <span class="slider-val" id="qtyVal">0.01%</span>
+          </div>
+          <p style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.4rem;">Pairs rows if decimal amounts match within this offset.</p>
+        </div>
+
+        <button class="btn" id="runBtn">
+          <div class="loader" id="btnLoader"></div>
+          <span id="btnText">Trigger Reconciliation</span>
+        </button>
+      </aside>
+
+      <!-- Right Dashboard Panel -->
+      <main class="glass-card">
+        <div class="panel-header">
+          <h2 style="font-size: 1.5rem; font-weight: 600;">Reconciliation Summary</h2>
+          <button class="btn-secondary" id="downloadBtn" disabled>
+            <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+            </svg>
+            Download CSV Report
+          </button>
+        </div>
+
+        <!-- Metrics cards -->
+        <div class="metrics-container">
+          <div class="metric-card matched">
+            <div class="metric-label">Matched</div>
+            <div class="metric-val" id="countMatched">-</div>
+          </div>
+          <div class="metric-card conflicting">
+            <div class="metric-label">Conflicting</div>
+            <div class="metric-val" id="countConflicting">-</div>
+          </div>
+          <div class="metric-card unmatched-user">
+            <div class="metric-label">Unmatched (User)</div>
+            <div class="metric-val" id="countUnmatchedUser">-</div>
+          </div>
+          <div class="metric-card unmatched-exchange">
+            <div class="metric-label">Unmatched (Exch)</div>
+            <div class="metric-val" id="countUnmatchedExchange">-</div>
+          </div>
+          <div class="metric-card invalid-rows">
+            <div class="metric-label">Invalid Rows</div>
+            <div class="metric-val" id="countInvalid">-</div>
+          </div>
+        </div>
+
+        <!-- Distribution bar chart -->
+        <div class="distribution-panel" id="distPanel" style="display: none;">
+          <div class="distribution-bar">
+            <div class="dist-segment matched" id="barMatched" style="width: 0%"></div>
+            <div class="dist-segment conflicting" id="barConflicting" style="width: 0%"></div>
+            <div class="dist-segment unmatched-user" id="barUnmatchedUser" style="width: 0%"></div>
+            <div class="dist-segment unmatched-exchange" id="barUnmatchedExchange" style="width: 0%"></div>
+          </div>
+          <div class="legend">
+            <div class="legend-item"><div class="legend-color" style="background-color: var(--color-matched)"></div>Matched</div>
+            <div class="legend-item"><div class="legend-color" style="background-color: var(--color-conflicting)"></div>Conflicting</div>
+            <div class="legend-item"><div class="legend-color" style="background-color: var(--color-unmatched-user)"></div>Unmatched (User)</div>
+            <div class="legend-item"><div class="legend-color" style="background-color: var(--color-unmatched-exchange)"></div>Unmatched (Exchange)</div>
+          </div>
+        </div>
+
+        <!-- Dynamic Results Panel -->
+        <div class="panel-header" style="margin-top: 2rem; margin-bottom: 0.5rem;">
+          <h3 style="font-size: 1.2rem; font-weight: 600;">Reconciliation Details</h3>
+        </div>
+
+        <div class="table-tabs" id="tableTabs" style="display: none;">
+          <button class="table-tab active" onclick="switchTab('ALL')">All Results</button>
+          <button class="table-tab" onclick="switchTab('MATCHED')">Matched</button>
+          <button class="table-tab" onclick="switchTab('CONFLICTING')">Conflicts</button>
+          <button class="table-tab" onclick="switchTab('UNMATCHED_USER')">Unmatched (User)</button>
+          <button class="table-tab" onclick="switchTab('UNMATCHED_EXCHANGE')">Unmatched (Exchange)</button>
+        </div>
+
+        <div class="table-container">
+          <table id="resultsTable">
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th>Asset</th>
+                <th>Quantity Diff</th>
+                <th>Reconciliation Reason</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody">
+              <tr>
+                <td colspan="4" class="text-center">
+                  <div class="empty-state">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <p>Adjust settings on the left and trigger reconciliation to view the reports.</p>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    // Elements
+    const timeSlider = document.getElementById('timeSlider');
+    const timeVal = document.getElementById('timeVal');
+    const qtySlider = document.getElementById('qtySlider');
+    const qtyVal = document.getElementById('qtyVal');
+    const runBtn = document.getElementById('runBtn');
+    const btnLoader = document.getElementById('btnLoader');
+    const btnText = document.getElementById('btnText');
+    const downloadBtn = document.getElementById('downloadBtn');
+
+    const countMatched = document.getElementById('countMatched');
+    const countConflicting = document.getElementById('countConflicting');
+    const countUnmatchedUser = document.getElementById('countUnmatchedUser');
+    const countUnmatchedExchange = document.getElementById('countUnmatchedExchange');
+    const countInvalid = document.getElementById('countInvalid');
+
+    const distPanel = document.getElementById('distPanel');
+    const barMatched = document.getElementById('barMatched');
+    const barConflicting = document.getElementById('barConflicting');
+    const barUnmatchedUser = document.getElementById('barUnmatchedUser');
+    const barUnmatchedExchange = document.getElementById('barUnmatchedExchange');
+
+    const tableBody = document.getElementById('tableBody');
+    const tableTabs = document.getElementById('tableTabs');
+
+    let currentRunId = null;
+    let allReportData = [];
+    let currentCategoryFilter = 'ALL';
+
+    // Sliders event listeners
+    timeSlider.addEventListener('input', (e) => {
+      timeVal.textContent = e.target.value + 's';
+    });
+
+    qtySlider.addEventListener('input', (e) => {
+      qtyVal.textContent = parseFloat(e.target.value).toFixed(4) + '%';
+    });
+
+    // Run reconciliation trigger
+    runBtn.addEventListener('click', async () => {
+      runBtn.disabled = true;
+      btnLoader.style.display = 'block';
+      btnText.textContent = 'Processing...';
+      
+      const config = {
+        timestampToleranceSeconds: parseInt(timeSlider.value),
+        quantityTolerancePct: parseFloat(qtySlider.value)
+      };
+
+      try {
+        const response = await fetch('/api/reconcile', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(config)
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          currentRunId = data.runId;
+          updateMetricsDashboard(data.summary);
+          await loadDetailedReport(data.runId);
+          downloadBtn.disabled = false;
+        } else {
+          alert('Reconciliation run failed: ' + data.error);
+        }
+      } catch (err) {
+        console.error(err);
+        alert('API error linking to engine. Make sure the Node server is running.');
+      } finally {
+        runBtn.disabled = false;
+        btnLoader.style.display = 'none';
+        btnText.textContent = 'Trigger Reconciliation';
+      }
+    });
+
+    // Download CSV
+    downloadBtn.addEventListener('click', () => {
+      if (currentRunId) {
+        window.location.href = `/api/report/${currentRunId}/csv`;
+      }
+    });
+
+    function updateMetricsDashboard(summary) {
+      countMatched.textContent = summary.matchedCount;
+      countConflicting.textContent = summary.conflictingCount;
+      countUnmatchedUser.textContent = summary.unmatchedUserCount;
+      countUnmatchedExchange.textContent = summary.unmatchedExchangeCount;
+      countInvalid.textContent = summary.invalidUserRowsCount + summary.invalidExchangeRowsCount;
+
+      // Update distribution visual bar
+      const totalMatches = summary.matchedCount + summary.conflictingCount + 
+                           summary.unmatchedUserCount + summary.unmatchedExchangeCount;
+      
+      if (totalMatches > 0) {
+        const pctMatched = (summary.matchedCount / totalMatches) * 100;
+        const pctConflicting = (summary.conflictingCount / totalMatches) * 100;
+        const pctUnmatchedUser = (summary.unmatchedUserCount / totalMatches) * 100;
+        const pctUnmatchedExchange = (summary.unmatchedExchangeCount / totalMatches) * 100;
+
+        barMatched.style.width = pctMatched + '%';
+        barConflicting.style.width = pctConflicting + '%';
+        barUnmatchedUser.style.width = pctUnmatchedUser + '%';
+        barUnmatchedExchange.style.width = pctUnmatchedExchange + '%';
+        distPanel.style.display = 'block';
+      } else {
+        distPanel.style.display = 'none';
+      }
+    }
+
+    async function loadDetailedReport(runId) {
+      try {
+        const response = await fetch(`/api/report/${runId}?limit=200`);
+        const data = await response.json();
+        if (data.success) {
+          allReportData = data.results;
+          tableTabs.style.display = 'flex';
+          renderTable();
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function switchTab(category) {
+      currentCategoryFilter = category;
+      // Update active tab styling
+      const tabs = document.querySelectorAll('.table-tab');
+      tabs.forEach(tab => {
+        if (tab.textContent.toUpperCase().includes(category.replace('_', ' '))) {
+          tab.classList.add('active');
+        } else if (category === 'ALL' && tab.textContent.includes('All')) {
+          tab.classList.add('active');
+        } else {
+          tab.classList.remove('active');
+        }
+      });
+      renderTable();
+    }
+
+    function renderTable() {
+      const filtered = currentCategoryFilter === 'ALL' 
+        ? allReportData 
+        : allReportData.filter(r => r.category === currentCategoryFilter);
+
+      if (filtered.length === 0) {
+        tableBody.innerHTML = `
+          <tr>
+            <td colspan="4" class="text-center" style="color: var(--color-text-muted); padding: 3rem;">
+              No results found in this category filter.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tableBody.innerHTML = filtered.map(r => {
+        const u = r.userTransaction || {};
+        const e = r.exchangeTransaction || {};
+        
+        const assetName = (u.asset || e.asset || 'N/A').toUpperCase();
+        let qtyDiff = '-';
+        if (r.category === 'MATCHED' || r.category === 'CONFLICTING') {
+          const diffPct = (Math.abs(u.quantity - e.quantity) / u.quantity) * 100;
+          qtyDiff = diffPct.toFixed(4) + '%';
+        }
+
+        const categoryClass = r.category.toLowerCase().replace('_', '-');
+        const categoryLabel = r.category.replace('_', ' ');
+
+        return `
+          <tr>
+            <td><span class="badge ${categoryClass}">${categoryLabel}</span></td>
+            <td style="font-weight: 500;">${assetName}</td>
+            <td style="font-family: monospace;">${qtyDiff}</td>
+            <td style="color: var(--color-text-muted); font-size: 0.85rem;">${r.reason}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+  </script>
+</body>
+</html>
