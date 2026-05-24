@@ -71,34 +71,6 @@ Represents the categorized matches inside the generated report.
 | `GET` | `/report/:runId/summary` or `/api/report/:runId/summary` | Fetches a high-level metrics count summary of the run. |
 | `GET` | `/report/:runId/unmatched` or `/api/report/:runId/unmatched` | Fetches only unmatched rows with their specific mismatch reasons. |
 
-### Sample Payload for `POST /reconcile`
-```json
-{
-  "timestampToleranceSeconds": 600,
-  "quantityTolerancePct": 0.05
-}
-```
-
-### Sample Response for `POST /reconcile`
-```json
-{
-  "success": true,
-  "runId": "a5d89f81-54c3-42e7-9102-3bdc01db78c3",
-  "config": {
-    "timestampToleranceSeconds": 600,
-    "quantityTolerancePct": 0.05
-  },
-  "summary": {
-    "matchedCount": 15,
-    "conflictingCount": 2,
-    "unmatchedUserCount": 3,
-    "unmatchedExchangeCount": 2,
-    "invalidUserRowsCount": 2,
-    "invalidExchangeRowsCount": 0
-  }
-}
-```
-
 ---
 
 ## Key Technical Design Decisions
