@@ -4,9 +4,9 @@ A production-grade, highly performant **Transaction Reconciliation Engine** buil
 
 ---
 
-## 🌐 Live Deployed Link
+## Live Deployed Link
 Experience the interactive glassmorphic reconciliation dashboard live on the cloud:
-👉 **[https://koinx-backend-z6fp.onrender.com/](https://koinx-backend-z6fp.onrender.com/)**
+ **[https://koinx-backend-z6fp.onrender.com/](https://koinx-backend-z6fp.onrender.com/)**
 
 ---
 
