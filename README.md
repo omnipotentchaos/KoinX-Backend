@@ -107,8 +107,10 @@ A `.env` file is initialized at the root of the project:
 ```env
 PORT=3000
 MONGO_URI=mongodb://localhost:27017/koinx-reconciliation
-DEFAULT_TIMESTAMP_TOLERANCE_SECONDS=300
-DEFAULT_QUANTITY_TOLERANCE_PCT=0.01
+
+# Reconciliation tolerances (As per KoinX job assignment specifications)
+TIMESTAMP_TOLERANCE_SECONDS=300
+QUANTITY_TOLERANCE_PCT=0.01
 ```
 *You can customize `MONGO_URI` to connect to your local or cloud database instance.*
 
@@ -136,14 +138,16 @@ npm test
 ---
 
 ## 🛜 REST API Reference
+> [!NOTE]
+> For strict compliance with the KoinX specifications, all routes are mounted **both at the root level** (e.g., `POST /reconcile`) and **with the `/api` prefix** (e.g., `POST /api/reconcile`) for dashboard compatibility.
 
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
-| `POST` | `/api/reconcile` | Triggers a reconciliation run. Accepts optional overrides in JSON body. |
-| `GET` | `/api/report/:runId` | Fetches the full detailed list of matches, paginated. |
-| `GET` | `/api/report/:runId/csv` | Downloads the complete reconciliation report as a formatted CSV file. |
-| `GET` | `/api/report/:runId/summary` | Fetches a high-level metrics count summary of the run. |
-| `GET` | `/api/report/:runId/unmatched` | Fetches only unmatched rows with their specific mismatch reasons. |
+| `POST` | `/reconcile` or `/api/reconcile` | Triggers a reconciliation run. Accepts optional overrides in JSON body. |
+| `GET` | `/report/:runId` or `/api/report/:runId` | Fetches the full detailed list of matches, paginated. |
+| `GET` | `/report/:runId/csv` or `/api/report/:runId/csv` | Downloads the complete reconciliation report as a formatted CSV file. |
+| `GET` | `/report/:runId/summary` or `/api/report/:runId/summary` | Fetches a high-level metrics count summary of the run. |
+| `GET` | `/report/:runId/unmatched` or `/api/report/:runId/unmatched` | Fetches only unmatched rows with their specific mismatch reasons. |
 
 ### Sample Payload for `POST /api/reconcile`
 ```json
